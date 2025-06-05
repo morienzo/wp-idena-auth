@@ -1,0 +1,36 @@
+.idena-auth-wrapper {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.idena-auth-button-container {
+    display: inline-block;
+}
+
+.idena-auth-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    background-color: #578bf5;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.idena-auth-button:hover {
+    background-color: #4a7dd8;
+    color: white;
+}
+
+.idena-auth-button img {
+    width: 24px;
+    height: 24px;
+    margin-right: 10px;
+}
+
+.login .idena-auth-wrapper {
+    margin-top: 20px;
+}
