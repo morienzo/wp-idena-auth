@@ -369,7 +369,7 @@ This plugin is licensed under the GPL v2 or later.
 - Better error handling and logging
 - Removed unused code and optimized assets
 
-### 1.0.0 (2024-01-01)
+### 1.0.0 (2025-06-05)
 - Initial release
 - Basic authentication functionality
 - Automatic user creation
