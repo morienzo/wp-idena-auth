@@ -10,40 +10,26 @@ class Idena_Auth {
     }
     
     public function init() {
-        // Register API routes
+        // Core hooks
         add_action('rest_api_init', array($this->api, 'register_routes'));
-        
-        // Add login button
         add_action('login_form', array($this, 'add_login_button'));
         add_shortcode('idena_login', array($this, 'login_button_shortcode'));
         
-        // Register scripts and styles
+        // Load styles on frontend and login page
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        add_action('login_enqueue_scripts', array($this, 'enqueue_login_scripts'));
+        add_action('login_enqueue_scripts', array($this, 'enqueue_scripts'));
         
-        // Handle callback
-        add_action('init', array($this, 'handle_callback'));
+        // Callback interception (Priority 1 for speed)
+        add_action('parse_request', array($this, 'handle_callback'), 1);
+        add_action('init', array($this, 'handle_callback'), 1);
         
-        // Add admin menu options
+        // Admin
         add_action('admin_menu', array($this, 'add_admin_menu'));
-        
-        // Register settings
         add_action('admin_init', array($this, 'register_settings'));
     }
     
     public function enqueue_scripts() {
         wp_enqueue_style('idena-auth', IDENA_AUTH_PLUGIN_URL . 'assets/css/idena-auth.css', array(), IDENA_AUTH_VERSION);
-        wp_enqueue_script('idena-auth', IDENA_AUTH_PLUGIN_URL . 'assets/js/idena-auth.js', array('jquery'), IDENA_AUTH_VERSION, true);
-        
-        wp_localize_script('idena-auth', 'idena_auth_ajax', array(
-            'ajax_url' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('idena-auth-nonce'),
-            'site_url' => site_url()
-        ));
-    }
-    
-    public function enqueue_login_scripts() {
-        $this->enqueue_scripts();
     }
     
     public function add_login_button() {
@@ -51,121 +37,90 @@ class Idena_Auth {
     }
     
     public function login_button_shortcode($atts) {
-        $atts = shortcode_atts(array(
-            'redirect' => '',
-            'class' => ''
-        ), $atts);
-        
         ob_start();
         include IDENA_AUTH_PLUGIN_DIR . 'templates/login-button.php';
         return ob_get_clean();
     }
     
     public function handle_callback() {
-        if (isset($_GET['idena_callback']) && isset($_GET['token'])) {
-            $token = sanitize_text_field($_GET['token']);
+        // Quick check to avoid overhead
+        if (!isset($_GET['idena_token'])) {
+            return;
+        }
+
+        $token = sanitize_text_field($_GET['idena_token']);
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'idena_sessions';
+        
+        $session = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE token = %s", $token));
+        
+        if (!$session) {
+            wp_redirect(wp_login_url() . '?idena_error=auth_failed');
+            exit;
+        }
+        
+        // --- CASE 1: DENIED STATUS ---
+        if ($session->status === 'denied') {
+            $wpdb->delete($table_name, array('token' => $token));
             
-            // Check if this is the popup window opened by Idena
-            if (isset($_GET['popup']) && $_GET['popup'] == '1') {
-                // This is the popup - show a closing page
-                ?>
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <title>Authentication Complete</title>
-                    <script>
-                        // Try to close window
-                        try {
-                            window.close();
-                        } catch(e) {}
-                        
-                        // Show message after a delay
-                        setTimeout(function() {
-                            document.getElementById('message').style.display = 'block';
-                        }, 1000);
-                    </script>
-                    <style>
-                        body {
-                            font-family: Arial, sans-serif;
-                            text-align: center;
-                            padding: 50px;
-                            background: #f5f5f5;
-                        }
-                        #message {
-                            display: none;
-                            background: white;
-                            padding: 30px;
-                            border-radius: 8px;
-                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                            max-width: 400px;
-                            margin: 0 auto;
-                        }
-                        .success-icon {
-                            color: #4CAF50;
-                            font-size: 48px;
-                            margin-bottom: 20px;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div id="message">
-                        <div class="success-icon">✓</div>
-                        <h2>Authentication Successful!</h2>
-                        <p>You can close this window and return to the main page.</p>
-                        <button onclick="window.close()" style="padding: 10px 20px; margin-top: 20px; cursor: pointer;">Close Window</button>
-                    </div>
-                </body>
-                </html>
-                <?php
+            $custom_redirect = get_option('idena_auth_redirect_failed');
+            if (!empty($custom_redirect)) {
+                wp_redirect($custom_redirect);
                 exit;
             }
             
-            // Check session
-            global $wpdb;
-            $table_name = $wpdb->prefix . 'idena_sessions';
-            $session = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $table_name WHERE token = %s AND status = 'authenticated'",
-                $token
-            ));
-            
-            if ($session) {
-                // Create or login user
-                $user_id = $this->user_manager->create_or_login_user($session->address);
-                
-                if ($user_id) {
-                    // Clean up session
-                    $wpdb->delete($table_name, array('token' => $token));
-                    
-                    // Redirect
-                    $redirect = isset($_GET['redirect']) ? esc_url($_GET['redirect']) : admin_url();
-                    wp_redirect($redirect);
-                    exit;
-                }
-            }
-            
-            // On error, redirect to login page
-            wp_redirect(wp_login_url() . '?idena_error=1');
+            wp_redirect(wp_login_url() . '?idena_error=status_not_allowed');
             exit;
         }
+        
+        // --- CASE 2: AUTHENTICATED ---
+        if ($session->status === 'authenticated') {
+            if (!class_exists('Idena_User')) {
+                require_once IDENA_AUTH_PLUGIN_DIR . 'includes/class-idena-user.php';
+            }
+            
+            $user_manager = new Idena_User();
+            $user_id = $user_manager->create_or_login_user($session->address);
+            
+            if ($user_id) {
+                $wpdb->delete($table_name, array('token' => $token));
+                
+                // Handle redirect param
+                $redirect_url = home_url('/');
+                if (isset($_GET['redirect_to'])) {
+                    $redirect_url = esc_url_raw($_GET['redirect_to']);
+                }
+                
+                wp_redirect($redirect_url);
+                exit;
+            } else {
+                wp_redirect(wp_login_url() . '?idena_error=create_failed');
+                exit;
+            }
+        }
+        
+        // Default fallback
+        wp_redirect(wp_login_url() . '?idena_error=auth_failed');
+        exit;
     }
     
     public function add_admin_menu() {
-        add_options_page(
-            'Idena Authentication',
-            'Idena Auth',
-            'manage_options',
-            'idena-auth',
-            array($this, 'admin_page')
-        );
+        add_options_page('Idena Authentication', 'Idena Auth', 'manage_options', 'idena-auth', array($this, 'admin_page'));
     }
     
     public function register_settings() {
         register_setting('idena_auth_settings', 'idena_auth_api_url');
-        register_setting('idena_auth_settings', 'idena_auth_allowed_status');
+        register_setting('idena_auth_settings', 'idena_auth_allowed_status', array('type'=>'array', 'sanitize_callback'=>array($this, 'sanitize_allowed_status')));
+        register_setting('idena_auth_settings', 'idena_auth_redirect_failed');
+    }
+    
+    public function sanitize_allowed_status($input) {
+        if (!is_array($input)) return array();
+        return array_map('sanitize_text_field', $input);
     }
     
     public function admin_page() {
+        if (!current_user_can('manage_options')) return;
         ?>
         <div class="wrap">
             <h1><?php _e('Idena Authentication Settings', 'idena-auth'); ?></h1>
@@ -176,58 +131,71 @@ class Idena_Auth {
                         <th scope="row"><?php _e('Idena API URL', 'idena-auth'); ?></th>
                         <td>
                             <input type="text" name="idena_auth_api_url" value="<?php echo get_option('idena_auth_api_url', 'https://api.idena.io'); ?>" class="regular-text" />
-                            <p class="description"><?php _e('URL of the Idena API to verify user status', 'idena-auth'); ?></p>
                         </td>
                     </tr>
                     <tr>
-                        <th scope="row"><?php _e('Allowed Status', 'idena-auth'); ?></th>
+                        <th scope="row"><?php _e('Allowed Statuses', 'idena-auth'); ?></th>
                         <td>
                             <?php 
                             $allowed_status = get_option('idena_auth_allowed_status', array('Verified', 'Human'));
-                            $all_statuses = array(
-                                'Candidate' => 'Candidate',
-                                'Newbie' => 'Newbie',
-                                'Verified' => 'Verified',
-                                'Human' => 'Human',
-                                'Suspended' => 'Suspended',
-                                'Zombie' => 'Zombie',
-                                'Not validated' => 'Not validated'
-                            );
-                            
-                            foreach ($all_statuses as $value => $label) {
-                                ?>
-                                <label>
-                                    <input type="checkbox" name="idena_auth_allowed_status[]" value="<?php echo esc_attr($value); ?>" <?php checked(in_array($value, $allowed_status)); ?>> 
-                                    <?php echo esc_html($label); ?>
-                                </label><br>
-                                <?php
+                            $all_statuses = array('Candidate', 'Newbie', 'Verified', 'Human', 'Suspended', 'Zombie', 'Not validated');
+                            foreach ($all_statuses as $val) {
+                                echo '<label style="display:block; margin-bottom:5px;"><input type="checkbox" name="idena_auth_allowed_status[]" value="'.$val.'" '.checked(in_array($val, (array)$allowed_status), true, false).'> '.$val.'</label>';
                             }
                             ?>
-                            <p class="description"><?php _e('Select which Idena identity statuses are allowed to authenticate', 'idena-auth'); ?></p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('Redirect on Failure', 'idena-auth'); ?></th>
+                        <td>
+                            <input type="url" name="idena_auth_redirect_failed" value="<?php echo get_option('idena_auth_redirect_failed'); ?>" class="regular-text" placeholder="https://..." />
+                            <p class="description">
+                                <?php _e('Optional. Redirect users to this URL if their Idena status is not allowed.', 'idena-auth'); ?>
+                            </p>
                         </td>
                     </tr>
                 </table>
                 <?php submit_button(); ?>
             </form>
             
+            <hr>
+            
             <h2><?php _e('Status Descriptions', 'idena-auth'); ?></h2>
             <ul>
-                <li><strong>Candidate</strong>: <?php _e('Invited but not yet validated', 'idena-auth'); ?></li>
-                <li><strong>Newbie</strong>: <?php _e('Validated 1-2 times', 'idena-auth'); ?></li>
-                <li><strong>Verified</strong>: <?php _e('Validated 3+ times', 'idena-auth'); ?></li>
-                <li><strong>Human</strong>: <?php _e('Validated 4+ times with high score', 'idena-auth'); ?></li>
-                <li><strong>Suspended</strong>: <?php _e('Missed the last validation', 'idena-auth'); ?></li>
-                <li><strong>Zombie</strong>: <?php _e('Missed two or more validations', 'idena-auth'); ?></li>
-                <li><strong>Not validated</strong>: <?php _e('Address exists but not validated', 'idena-auth'); ?></li>
+                <li><strong>Human</strong>: Validated 4+ times with high score</li>
+                <li><strong>Verified</strong>: Validated 3+ times</li>
+                <li><strong>Newbie</strong>: Validated 1-2 times</li>
+                <li><strong>Candidate</strong>: Invited but not yet validated</li>
+                <li><strong>Suspended</strong>: Missed the last validation</li>
+                <li><strong>Zombie</strong>: Missed two or more validations</li>
+                <li><strong>Not validated</strong>: Address exists but not validated</li>
             </ul>
             
             <h2><?php _e('Usage Instructions', 'idena-auth'); ?></h2>
-            <p><?php _e('To add the Idena login button to your site:', 'idena-auth'); ?></p>
-            <ol>
-                <li><?php _e('Use shortcode:', 'idena-auth'); ?> <code>[idena_login]</code></li>
-                <li><?php _e('The button automatically appears on the WordPress login page', 'idena-auth'); ?></li>
-                <li><?php _e('You can add custom redirect:', 'idena-auth'); ?> <code>[idena_login redirect="/custom-page/"]</code></li>
-            </ol>
+            <p><?php _e('You can add the Idena login button anywhere using shortcodes:', 'idena-auth'); ?></p>
+            
+            <table class="widefat striped">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Shortcode</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><?php _e('Standard button', 'idena-auth'); ?></td>
+                        <td><code>[idena_login]</code></td>
+                    </tr>
+                    <tr>
+                        <td><?php _e('Redirect after SUCCESSFUL login', 'idena-auth'); ?></td>
+                        <td><code>[idena_login redirect="/dashboard/"]</code></td>
+                    </tr>
+                    <tr>
+                        <td><?php _e('Custom CSS class', 'idena-auth'); ?></td>
+                        <td><code>[idena_login class="my-custom-class"]</code></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
         <?php
     }

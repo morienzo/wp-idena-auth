@@ -1,129 +1,98 @@
-# Copyright (C) 2024 Idena Community
+# Copyright (C) 2025 Idena Community
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: Idena Authentication 1.0.0\n"
-"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/idena-auth\n"
-"POT-Creation-Date: 2024-01-01 00:00:00+00:00\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
+"Project-Id-Version: Idena Authentication 1.0.4\n"
+"Report-Msgid-Bugs-To: https://github.com/morienzo/wp-idena-auth/issues\n"
 
-#: idena-auth.php:106
+#: idena-auth.php:68
 msgid "Settings"
 msgstr ""
 
-#: templates/login-button.php:48
+#: templates/login-button.php:10
+msgid "Authentication failed."
+msgstr ""
+
+#: templates/login-button.php:11
+msgid "Could not create user."
+msgstr ""
+
+#: templates/login-button.php:13
+msgid "Try again"
+msgstr ""
+
+#: templates/login-button.php:46
 msgid "Sign in with Idena"
 msgstr ""
 
-#: templates/login-button.php:5
-msgid "Authentication failed. Please try again."
-msgstr ""
-
-#: includes/class-idena-auth.php:111
+#: includes/class-idena-auth.php:126
 msgid "Idena Authentication Settings"
 msgstr ""
 
-#: includes/class-idena-auth.php:117
+#: includes/class-idena-auth.php:131
 msgid "Idena API URL"
 msgstr ""
 
-#: includes/class-idena-auth.php:120
-msgid "URL of the Idena API to verify user status"
+#: includes/class-idena-auth.php:137
+msgid "Allowed Statuses"
 msgstr ""
 
-#: includes/class-idena-auth.php:124
-msgid "Allowed Status"
-msgstr ""
-
-#: includes/class-idena-auth.php:144
-msgid "Select which Idena identity statuses are allowed to authenticate"
-msgstr ""
-
-#: includes/class-idena-auth.php:151
-msgid "Status Descriptions"
+#: includes/class-idena-auth.php:150
+msgid "Redirect on Failure"
 msgstr ""
 
 #: includes/class-idena-auth.php:153
-msgid "Invited but not yet validated"
+msgid "Optional. Redirect users to this URL if their Idena status is not allowed."
 msgstr ""
 
-#: includes/class-idena-auth.php:154
-msgid "Validated 1-2 times"
-msgstr ""
-
-#: includes/class-idena-auth.php:155
-msgid "Validated 3+ times"
-msgstr ""
-
-#: includes/class-idena-auth.php:156
-msgid "Validated 4+ times with high score"
-msgstr ""
-
-#: includes/class-idena-auth.php:157
-msgid "Missed the last validation"
-msgstr ""
-
-#: includes/class-idena-auth.php:158
-msgid "Missed two or more validations"
-msgstr ""
-
-#: includes/class-idena-auth.php:159
-msgid "Address exists but never validated"
-msgstr ""
-
-#: includes/class-idena-auth.php:162
-msgid "Usage Instructions"
+#: includes/class-idena-auth.php:161
+msgid "Status Descriptions"
 msgstr ""
 
 #: includes/class-idena-auth.php:163
-msgid "To add the Idena login button to your site:"
+msgid "Validated 4+ times with high score"
+msgstr ""
+
+#: includes/class-idena-auth.php:164
+msgid "Validated 3+ times"
 msgstr ""
 
 #: includes/class-idena-auth.php:165
-msgid "Use shortcode:"
+msgid "Validated 1-2 times"
 msgstr ""
 
 #: includes/class-idena-auth.php:166
-msgid "The button automatically appears on the WordPress login page"
+msgid "Invited but not yet validated"
 msgstr ""
 
 #: includes/class-idena-auth.php:167
-msgid "You can add custom redirect:"
+msgid "Missed the last validation"
 msgstr ""
 
-#: includes/class-idena-api.php:126
-msgid "Authentication Complete"
+#: includes/class-idena-auth.php:168
+msgid "Missed two or more validations"
 msgstr ""
 
-#: includes/class-idena-api.php:134
-msgid "Authentication Successful!"
+#: includes/class-idena-auth.php:169
+msgid "Address exists but not validated"
 msgstr ""
 
-#: includes/class-idena-api.php:135
-msgid "This window will close automatically..."
+#: includes/class-idena-auth.php:172
+msgid "Usage Instructions"
 msgstr ""
 
-#: includes/class-idena-auth.php:76
-msgid "Authentication Complete"
+#: includes/class-idena-auth.php:173
+msgid "You can add the Idena login button anywhere using shortcodes:"
 msgstr ""
 
-#: includes/class-idena-auth.php:97
-msgid "Authentication Successful!"
+#: includes/class-idena-auth.php:180
+msgid "Standard button"
 msgstr ""
 
-#: includes/class-idena-auth.php:98
-msgid "You can close this window and return to the main page."
+#: includes/class-idena-auth.php:184
+msgid "Redirect after SUCCESSFUL login"
 msgstr ""
 
-#: includes/class-idena-auth.php:99
-msgid "Close Window"
-msgstr ""
-
-#: assets/js/idena-auth.js:56
-msgid "Authentication timeout. Please try again."
+#: includes/class-idena-auth.php:188
+msgid "Custom CSS class"
 msgstr ""
