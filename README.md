@@ -12,6 +12,7 @@ Idena Authentication allows your WordPress users to sign in using their Idena id
 - 🚀 **Robust Redirection**: Uses a direct redirect flow compatible with all browsers (no blocking popups).
 - 🔒 **Privacy-First**: 
   - Automatic user creation with anonymous handles (e.g., `id-a1b2c3d4`).
+  - **Hashed Storage**: Idena addresses are stored as SHA-256 hashes in the database, ensuring privacy even if the database is compromised.
   - Display names are anonymized by default.
 - 🛡️ **Access Control**:
   - Configure allowed statuses (Human, Verified, Newbie, etc.).
