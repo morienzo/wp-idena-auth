@@ -19,7 +19,9 @@ Idena Authentication plugin enables WordPress sites to authenticate users throug
 * **Proof-of-Person Authentication**: Only verified humans can authenticate.
 * **No Password Required**: Users authenticate via cryptographic signature.
 * **Robust Redirection Flow**: Works on all browsers (mobile & desktop) without popups.
-* **Privacy-First**: Accounts are created with anonymous IDs (e.g., `id-a1b2c3d4`).
+* **Privacy-First**: 
+    * Accounts are created with anonymous IDs (e.g., `id-a1b2c3d4`).
+    * Blockchain addresses are stored as **SHA-256 hashes** (not plain text) for maximum privacy.
 * **Configurable Access Levels**: Choose which Idena statuses (Human, Verified, etc.) can access your site.
 * **Custom "Access Denied" Page**: Redirect unauthorized users to a specific page.
 * **High Compatibility**: Works with Nginx/Apache and strict server configurations.
@@ -94,6 +96,11 @@ Yes, the plugin denies login to users without the allowed status. You can also s
 Yes. The plugin creates accounts using a shortened hash of the address (e.g., `id-a1b2c3d4`) and does not collect emails or real names.
 
 == Changelog ==
+
+= 1.0.5 =
+* Security: Implemented SHA-256 hashing for storing Idena addresses in the database.
+* Feature: Added automatic migration for existing users (plain text addresses are converted to hashes upon login).
+* Privacy: Enforced anonymous display names by default.
 
 = 1.0.4 =
 * Feature: Added "Redirect on Failure" setting for unauthorized statuses.
